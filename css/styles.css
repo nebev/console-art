@@ -1,0 +1,18 @@
+body, html {
+    font-family: 'Open Sans', sans-serif;
+}
+
+.drop-area {
+    border: 3px dashed #333;
+    padding: 30px;
+    border-radius: 10px;
+}
+
+.drop-area.dragging {
+    border: 3px dashed #f33;
+    background: #EEE;
+}
+
+.console-width-container {
+    margin-top: 30px;
+}

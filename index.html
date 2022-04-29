@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Console Art Generator</title>
+    <meta name="description" content="Generate Console Art.">
+    <meta name="author" content="Ben Evans">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css?v=1.0">
+    <link rel="stylesheet"
+      href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/styles/default.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/rgbquant@1.1.2/src/rgbquant.min.js"></script>
+</head>
+
+<body>
+    <h1>Console Art Generator</h1>
+    <div class="container" x-data="uploads">
+        <div>
+            <p>Drag and drop an image below.</p>
+            <input type="file" id="img-uploader"
+                :class="{'drop-area': true, 'dragging': state === 'dragging' }"
+                class=""
+                @change="upload($event)"
+                @dragover.prevent="state = 'dragging'"
+                @dragleave.prevent="state = 'ready'"
+            />
+        </div>
+
+        <div class="console-width-container">
+            <span>Maximum Console Width:</span>
+            <input type="number" x-model="maxWidth" max="300" min="10" x-on:input.debounce="writeImageToCanvas()" />
+        </div>
+        <div class="limit-colours-container">
+            <span>Colour limit (0 = Unlimited):</span>
+            <input type="number" x-model="colourLimit" max="24000000" min="0" x-on:input.debounce="writeImageToCanvas()" />
+        </div>
+
+        <div x-show="imageUploaded">
+            <div class="canvas-container">
+                <h3>Preview</h3>
+                <canvas></canvas>
+            </div>
+
+            <button @click="writeConsole()">Generate</button>
+            <template x-if="generationString">
+                <div>
+                    <p>Open your devtools console and check out your art!</p>
+                    <p>Want to embed this in your own site? Copy the code below</p>
+                    <pre><code class="language-javascript" x-text="generationString"></code></pre>
+                </div>
+            </template>
+        </div>
+
+    </div>
+    <script src="//unpkg.com/alpinejs" defer></script>
+    <script src="//rawgit.com/pieroxy/lz-string/master/libs/lz-string.js"></script>
+    <script src="js/scripts.js"></script>
+</body>
+
+</html>
