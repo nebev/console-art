@@ -1,3 +1,27 @@
+const encodeBase64Palette = (colors) => {
+  // colors is an array of “#RRGGBBAA” or “RRGGBBAA” strings
+  // 1) remove ‘#’ if present
+  // 2) parse each color as 4 bytes
+  // 3) push into a Uint8Array
+  // 4) convert that Uint8Array to base64
+  const bytes = [];
+  for (const color of colors) {
+    const hex = color.replace(/^#/, "");
+    // parseInt(hex, 16) => 32-bit integer
+    // but we’ll store as 4 separate bytes
+    for (let i = 0; i < 8; i += 2) {
+      bytes.push(parseInt(hex.slice(i, i + 2), 16));
+    }
+  }
+
+  // Convert the byte array to base64:
+  const uint8 = new Uint8Array(bytes);
+  let bin = "";
+  uint8.forEach((b) => (bin += String.fromCharCode(b)));
+  return btoa(bin); // => base64 string
+}
+
+
 document.addEventListener('alpine:init', () => {
   Alpine.data('uploads', () => ({
       files: [],
@@ -106,24 +130,32 @@ document.addEventListener('alpine:init', () => {
             consoleString += '\n';
             compressedString += '1';
         }
-        this.generationString = `// If you have the LZ String Library loaded (Recommended)
-// https://rawgit.com/pieroxy/lz-string/master/libs/lz-string.js
-function displayConsoleImage() {
-  const palette = JSON.parse(LZString.decompressFromUTF16('${LZString.compressToUTF16(JSON.stringify(palette))}'));
-  const consoleString = LZString.decompressFromUTF16('${LZString.compressToUTF16(consoleString)}');
-  const paletteMap = JSON.parse(LZString.decompressFromUTF16('${LZString.compressToUTF16(JSON.stringify(paletteMap))}'));
-  console.log(consoleString, ...paletteMap.map(a => 'background: ' + palette[a]));
-}
 
+        // Make our no-external-lib code work with run length encoding, with 02 being the most likely repeated sets of characters
+        const compressedTmp = compressedString.replace(/02/g, '*');
+        let compressedRle = '';
+        let counter = 0;
+        for (const charIdx in compressedTmp) {
+            if (compressedTmp[charIdx] === '*') { counter++; }
+            else {
+                if (counter === 1) { compressedRle += '02'; }
+                else if (counter > 1) { compressedRle+= `!${counter}*`; }
+                compressedRle += compressedTmp[charIdx];
+                counter = 0;
+            }
+        }
 
+        this.generationString = `
 // Works without any external libraries
 function displayConsoleImage() {
-  const palette = "${palette.map(a => a.substring(1)).join('|')}".split('|').map(a=>\`#\${a}\`);
-  const consoleString = "${compressedString}".split('').map(b=>{return b==='0'?'%c':b==='1'?'\\n':''.padEnd((b.codePointAt(0)-49)*2,' ')}).join('');
+  const palette = atob("${encodeBase64Palette(palette)}").match(/[\\s\\S]{4}/g).map(grp=>"#"+[...grp].map(c=>c.charCodeAt(0).toString(16).padStart(2,"0")).join(""));
+  const consoleString = "${compressedRle}".replace(/!(\\d+)\\*/g, (_, n) => '02'.repeat(+n)).split('').map(b=>{return b==='0'?'%c':b==='1'?'\\n':''.padEnd((b.codePointAt(0)-49)*2,' ')}).join('');
   const paletteMap = "${paletteMap.map(a => String.fromCodePoint(256 + a)).join('')}".split('').map(c=>c.codePointAt(0)-256);
   console.log(consoleString, ...paletteMap.map(a=>'background: '+palette[a]));
-}`;
-        console.log(consoleString, ...consoleOpts);
+}
+`;
+        console.log(consoleString, ...consoleOpts, `Used ${palette.length} colours`);
+        window.originalPalette = palette;
 
         // Highlight
         setTimeout(() => {
